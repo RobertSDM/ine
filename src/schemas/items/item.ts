@@ -1,3 +1,4 @@
+import type Vec2D from "../vector";
 import type View from "../view";
 
 export default interface Item {
@@ -6,9 +7,10 @@ export default interface Item {
         view: View,
         highlighted?: boolean
     ): void;
-    move(x: number, y: number): void;
-    hovered(x: number, y: number): boolean;
-    isInside(x: number, y: number, w: number, h: number): boolean;
+    move(vec: Vec2D): void;
+    hovered(vec: Vec2D): boolean;
+    isInside(vec: Vec2D, w: number, h: number): boolean;
     getWidth(): number;
     getHeight(): number;
+    get posVec(): Vec2D;
 }

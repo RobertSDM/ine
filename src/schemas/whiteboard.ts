@@ -1,35 +1,24 @@
 import type Item from "./items/item";
-import RectangleItem from "./items/rectangleItem";
+import Vec2D from "./vector";
 
 export default class Whiteboard {
-    private items: Array<Item> = [];
-    private width: number = 4000;
-    private height: number = 4000;
+    private items: Array<Item>;
+    private origin: Vec2D;
 
-    constructor(private ctx: CanvasRenderingContext2D) {}
-
-    public createRectangle(x: number, y: number, w: number, h: number) {
-        this.items.push(new RectangleItem(x, y, w, h));
+    constructor(private ctx: CanvasRenderingContext2D) {
+        this.items = [];
+        this.origin = new Vec2D(0, 0);
     }
 
-    public itemsInsideRange(
-        x: number,
-        y: number,
-        w: number,
-        h: number
-    ): Item[] {
-        return this.items.filter((item) => item.isInside(x, y, w, h));
+    public addItem(item: Item) {
+        this.items.push(item);
+    }
+
+    public itemsInside(vec: Vec2D, w: number, h: number): Item[] {
+        return this.items.filter((item) => item.isInside(vec, w, h));
     }
 
     public getContext() {
         return this.ctx;
-    }
-
-    public getWidth() {
-        return this.width;
-    }
-
-    public getHeight() {
-        return this.height;
     }
 }

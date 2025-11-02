@@ -1,91 +1,89 @@
 import type Item from "./items/item";
+import Vec2D from "./vector";
 import type Whiteboard from "./whiteboard";
 
 export default class View {
-    private x: number;
-    private y: number;
+    private _posVec: Vec2D;
 
-    private beingDraged: boolean = false;
-    private lastDragPosition: Array<number> = [0, 0];
+    private _isDragged: boolean;
+    private lastPosition: Vec2D;
 
     constructor(
         private whiteboard: Whiteboard,
         private width: number,
         private height: number
     ) {
-        this.x = 0;
-        this.y = 0;
+        this._isDragged = false;
+        this._posVec = new Vec2D(0, 0).subtract(
+            Math.floor(this.width / 2),
+            Math.floor(this.height / 2)
+        );
+        this.lastPosition = new Vec2D(0, 0);
     }
 
-    public hoveredItem(x: number, y: number): Item | null {
+    public hoveredItem(vec: Vec2D): Item | null {
         return (
             this.whiteboard
-                .itemsInsideRange(this.x, this.y, this.width, this.height)
-                .find((item) =>
-                    item.hovered(
-                        this.x - x + item.getWidth(),
-                        this.y - y + item.getHeight()
-                    )
-                ) ?? null
+                .itemsInside(this._posVec, this.width, this.height)
+                .find((item) => {
+                    return item.hovered(this._posVec.addVec(vec));
+                }) ?? null
         );
     }
 
-    public draw(mouseX: number, mouseY: number) {
+    public draw(vec: Vec2D) {
         this.clearView();
 
-        const items = this.whiteboard.itemsInsideRange(
-            this.x,
-            this.y,
+        const items = this.whiteboard.itemsInside(
+            this._posVec,
             this.width,
             this.height
         );
 
-        let hovered = this.hoveredItem(mouseX, mouseY);
-
         for (let item of items) {
-            item.draw(this.whiteboard.getContext(), this, hovered === item);
+            item.draw(
+                this.whiteboard.getContext(),
+                this,
+                item.hovered(this._posVec.addVec(vec))
+            );
         }
     }
 
-    public initDrag(x: number, y: number) {
-        this.beingDraged = true;
-        this.lastDragPosition = [x, y];
+    public initDrag(initVec: Vec2D) {
+        this._isDragged = true;
+        this.lastPosition = initVec.copy();
     }
 
-    public move(x: number, y: number) {
-        if (!this.beingDraged) return;
+    public move(moveVec: Vec2D) {
+        if (!this._isDragged) return;
 
-        this.x += x - this.lastDragPosition[0];
-        this.y += y - this.lastDragPosition[1];
-
-        this.x = Math.abs(this.x);
-        this.y = Math.abs(this.y);
-
-        this.lastDragPosition = [x, y];
+        this._posVec = this._posVec.addVec(
+            moveVec.subtractVec(this.lastPosition).invert()
+        );
+        this.lastPosition = moveVec.copy();
     }
 
     public endDrag() {
-        this.beingDraged = false;
-        this.lastDragPosition = [];
+        this._isDragged = false;
     }
 
-    public clearView() {
+    private clearView() {
         this.whiteboard.getContext().beginPath();
         this.whiteboard.getContext().clearRect(0, 0, this.width, this.height);
         this.whiteboard.getContext().fill();
         this.whiteboard.getContext().closePath();
     }
 
-    public getX() {
-        return this.x;
-    }
-
-    public getY() {
-        return this.y;
-    }
-
     public setSize(w: number, h: number) {
         this.width = w;
         this.height = h;
+    }
+
+    get posVec(): Vec2D {
+        return this._posVec;
+    }
+
+    get isDragged(): boolean {
+        return this._isDragged
     }
 }

@@ -2,18 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import Toolbelt from "../components/toolbelt";
 import Whiteboard from "../schemas/whiteboard";
 import View from "../schemas/view";
+import Vec2D from "../schemas/vector";
 
 export default function WhiteboardPage() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const loopRef = useRef<number>(0);
 
     const [width, setWidth] = useState(window.innerWidth);
     const [height, setHeight] = useState(window.innerHeight);
 
-    const [mousePosition, setMousePosition] = useState<Array<number>>([]);
+    const [mousePosition, setMousePosition] = useState<Vec2D>(
+        new Vec2D(5000, 5000)
+    );
 
     const [whiteboard, setWhiteboard] = useState<null | Whiteboard>(null);
-    const [view, setView] = useState<null | View>(null);
+    const [view, setView] = useState<View | null>(null);
 
     useEffect(() => {
         if (!canvasRef.current) return;
@@ -37,20 +39,19 @@ export default function WhiteboardPage() {
     }
 
     function drawLoop() {
-
         const [w, h] = getWindowSize();
         updateSize(w, h);
 
-        view?.draw(mousePosition[0], mousePosition[1]);
+        view?.draw(mousePosition);
 
-        loopRef.current = requestAnimationFrame(drawLoop);
+        return requestAnimationFrame(drawLoop);
     }
 
     useEffect(() => {
-        loopRef.current = requestAnimationFrame(drawLoop);
+        const ref = requestAnimationFrame(drawLoop);
 
-        return () => cancelAnimationFrame(loopRef.current);
-    }, [whiteboard, mousePosition]);
+        return () => cancelAnimationFrame(ref);
+    });
 
     return (
         <section className="relative">
@@ -59,16 +60,21 @@ export default function WhiteboardPage() {
                 ref={canvasRef}
                 width={width}
                 height={height}
-                className="w-full h-[100dvh] bg-neutral-900"
+                className={`w-full h-[100dvh] bg-neutral-900 ${
+                    view?.isDragged ? "cursor-grabbing" : "cursor-default"
+                }`}
                 onMouseMove={(e) => {
-                    setMousePosition([e.clientX, e.clientY]);
+                    const mouseVec = new Vec2D(e.clientX, e.clientY);
 
-                    view?.move(e.clientX, e.clientY);
+                    setMousePosition(mouseVec);
+                    view?.move(mouseVec);
                 }}
                 onMouseDown={(e) => {
-                    if (!!view?.hoveredItem(e.clientX, e.clientY)) return;
+                    const mouseVec = new Vec2D(e.clientX, e.clientY);
 
-                    view?.initDrag(e.clientX, e.clientY);
+                    if (!!view?.hoveredItem(mouseVec)) return;
+
+                    view?.initDrag(mouseVec);
                 }}
                 onMouseUp={() => {
                     view?.endDrag();
